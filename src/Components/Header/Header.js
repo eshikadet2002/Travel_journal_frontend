@@ -6,8 +6,18 @@ import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 import 'bootstrap-icons/font/bootstrap-icons.css';
+import { useNavigate } from 'react-router-dom';
 
 function Header() {
+  
+  const navigate = useNavigate(); 
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    navigate('/login'); 
+  };
+
   return (
     <Navbar expand="lg" className="bg-primary text-white">
       <Container fluid>
@@ -28,9 +38,7 @@ function Header() {
               <NavDropdown.Item href="/Sign-up">
                 <b>Sign-up</b>
               </NavDropdown.Item>
-              <NavDropdown.Item href="/Logout">
-                <b>Logout</b>
-              </NavDropdown.Item>
+              <NavDropdown.Item onClick={logout}><b>Logout</b></NavDropdown.Item>
               <NavDropdown.Divider />
             </NavDropdown>
           </Nav>

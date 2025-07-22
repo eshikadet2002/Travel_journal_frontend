@@ -43,11 +43,13 @@ function SignUp() {
 let result = await response.json();
 
 if (response.ok && result.status) {
-  toast.success('Sign-Up successful!');
-  navigate('/');
-} else {
-  toast.error(result.message || 'Sign-Up failed.');
-}
+				toast.success('Sign-Up successful!');
+				localStorage.setItem('token', result.token); // Store token if needed
+				localStorage.setItem('userId', result.data._id);
+				navigate('/');
+			} else {
+				toast.error(result.message || 'Sign-Up failed.');
+			}
 
     } catch (error) {
       console.error('Error:', error);
