@@ -1,128 +1,140 @@
-import React, { useState, useEffect } from "react";
-import { Card, Button, Container, Row, Col, Spinner, Form } from "react-bootstrap";
+import React, { useEffect, useState } from 'react';
+import { use } from 'react';
+import { Container, Form, Button, Row, Col, InputGroup } from 'react-bootstrap';
+import { GoEye, GoEyeClosed } from "react-icons/go";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css'
 
-const Profile = () => {
-  const userId = "123456"; // Replace with dynamic user ID logic (e.g., from auth context)
-  const [user, setUser] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/api/profile/${userId}`);
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
-        setUser(data);
-      } catch (err) {
-        console.error("Error fetching profile:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, [userId]);
+function Profile() {
+	const [name, setName] = useState('');
+	const [email, setEmail] = useState('');
+	const [password, setPassword] = useState('');
+	const [showPassword, setShowPassword] = useState(false);
+	const [userId, setUserId] = useState(null);
+	const token = localStorage.getItem('token');
 
-  const handleChange = (e) => {
-    setUser({ ...user, [e.target.name]: e.target.value });
-  };
+	const fetchUserProfile = async () => {
+		try {
+			let user_id = localStorage.getItem('userId');
+			let response = await fetch(`http://localhost:5000/users/${user_id}`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'authorization': `Bearer ${token}`
+				},
+			});
+			response = await response.json();
+			if (response.status) {
+				setName(response.data.name);
+				setEmail(response.data.email);
+			} else {
+				toast.error('Failed to fetch user profile data.');
+			}
 
-  const handleSave = async () => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/profile/${userId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(user),
-      });
-      if (!response.ok) throw new Error("Failed to update profile");
-      setIsEditing(false);
-    } catch (err) {
-      console.error("Error updating profile:", err);
-    }
-  };
+		} catch (error) {
+			console.error('Error fetching user profile:', error);
+			toast.error('Failed to fetch user profile data.');
+		}
 
-  if (loading) {
-    return (
-      <Container className="mt-5 text-center">
-        <Spinner animation="border" />
-      </Container>
-    );
-  }
+	}
 
-  if (!user) {
-    return (
-      <Container className="mt-5 text-center">
-        <p>User not found</p>
-      </Container>
-    );
-  }
+	useEffect(() => {
+		fetchUserProfile();
+		setUserId(localStorage.getItem('userId')); // Assuming the user ID is stored in local storage
+	}, [])
 
-  return (
-    <Container className="mt-5">
-      <Row className="justify-content-center">
-        <Col md={6}>
-          <Card className="text-center shadow">
-            <Card.Img
-              variant="top"
-              src="https://via.placeholder.com/150"
-              alt="Profile Picture"
-              className="rounded-circle mx-auto mt-4"
-              style={{ width: "150px", height: "150px", objectFit: "cover" }}
-            />
-            <Card.Body>
-              {isEditing ? (
-                <>
-                  <Form.Group className="mb-3">
-                    <Form.Control
-                      type="text"
-                      name="name"
-                      value={user.name}
-                      onChange={handleChange}
-                    />
-                  </Form.Group>
-                  <Form.Group className="mb-3">
-                    <Form.Control
-                      as="textarea"
-                      name="bio"
-                      value={user.bio}
-                      onChange={handleChange}
-                    />
-                  </Form.Group>
-                  <Form.Group className="mb-3">
-                    <Form.Control
-                      type="email"
-                      name="email"
-                      value={user.email}
-                      onChange={handleChange}
-                    />
-                  </Form.Group>
-                  <Button variant="success" onClick={handleSave} className="me-2">
-                    Save
-                  </Button>
-                  <Button variant="secondary" onClick={() => setIsEditing(false)}>
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Card.Title>{user.name}</Card.Title>
-                  <Card.Text>{user.bio}</Card.Text>
-                  <Card.Text>
-                    <strong>Email:</strong> {user.email}
-                  </Card.Text>
-                  <Button variant="primary" onClick={() => setIsEditing(true)}>
-                    Edit Profile
-                  </Button>
-                </>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
-  );
-};
+
+
+
+	const handleUpdate = async (e) => {
+		e.preventDefault();
+
+		if (!name) return toast.warning('Name is required!');
+		if (!email || !/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(email)) return toast.warning('Valid email is required!');
+		if (!password) return toast.warning('Password is required!');
+
+		try {
+
+			let response = await fetch(`http://localhost:5000/users/${userId}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					'authorization': `Bearer ${token}`
+				},
+				body: JSON.stringify(
+					{
+						name,
+						email,
+						password
+					}
+				),
+			});
+			response = await response.json();
+			if (response.status) {
+				toast.success(response.message);
+			} else {
+				toast.error(response.message);
+			}
+		} catch (error) {
+			console.error('Error updating profile:', error);
+			toast.error('Failed to update profile.');
+		}
+	};
+
+	return (
+		<Container className="mt-5 profile-container">
+			<ToastContainer />
+			<Row className="justify-content-center">
+				<Col md={6}>
+					<h3 className="text-center mb-4">My Profile</h3>
+					<Form onSubmit={handleUpdate}>
+						<Form.Group className="mb-3" controlId="formName">
+							<Form.Label>Name</Form.Label>
+							<Form.Control
+								type="text"
+								placeholder="Enter your name"
+								value={name}
+								onChange={(e) => setName(e.target.value)}
+							/>
+						</Form.Group>
+
+						<Form.Group className="mb-3" controlId="formEmail">
+							<Form.Label>Email</Form.Label>
+							<Form.Control
+								type="email"
+								placeholder="Enter your email"
+								value={email}
+								onChange={(e) => setEmail(e.target.value)}
+							/>
+						</Form.Group>
+
+						<Form.Group className="mb-3" controlId="formPassword">
+							<Form.Label>Password</Form.Label>
+							<InputGroup>
+								<Form.Control
+									type={showPassword ? 'text' : 'password'}
+									placeholder="Enter new password"
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+								/>
+								<Button
+									variant="outline-secondary"
+									onClick={() => setShowPassword(!showPassword)}
+								>
+									{showPassword ? <GoEyeClosed /> : <GoEye />}
+								</Button>
+							</InputGroup>
+						</Form.Group>
+
+						<Button type="submit" variant="primary" className="w-100">
+							Update Profile
+						</Button>
+					</Form>
+				</Col>
+			</Row>
+		</Container>
+	);
+}
 
 export default Profile;

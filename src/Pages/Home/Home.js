@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Form, Button, Card, Row, Col, Alert } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Container, Form, Button, Alert, Image } from 'react-bootstrap';
 
 function JournalManager() {
-  const [entries, setEntries] = useState([]);
   const [formData, setFormData] = useState({
     photo: '',
     location: '',
@@ -11,22 +10,9 @@ function JournalManager() {
   });
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const apiBase = 'http://localhost:5000/api/journals';
-
-  useEffect(() => {
-    fetchEntries();
-  }, []);
-
-  const fetchEntries = async () => {
-    try {
-      const response = await fetch(apiBase);
-      const data = await response.json();
-      setEntries(data);
-    } catch (err) {
-      setError('Error fetching journal entries.');
-    }
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -36,13 +22,12 @@ function JournalManager() {
   const handleAddOrUpdate = async () => {
     const { photo, location, experience, status } = formData;
     const userId = localStorage.getItem('userId');
-     const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token');
 
     if (!userId) {
       setError('User not authenticated. Please login again.');
       return;
     }
-     console.log('Submitting entry with userId:', userId);
 
     if (!photo || !location || !experience) {
       setError('Please fill all required fields.');
@@ -54,10 +39,10 @@ function JournalManager() {
         editingId ? `${apiBase}/${editingId}` : apiBase,
         {
           method: editingId ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json',
+          headers: {
+            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
-           },
-
+          },
           body: JSON.stringify({ ...formData, userId })
         }
       );
@@ -67,29 +52,10 @@ function JournalManager() {
       setFormData({ photo: '', location: '', experience: '', status: 'public' });
       setEditingId(null);
       setError('');
-      fetchEntries();
+      setSuccess('Journal entry saved successfully.');
     } catch (err) {
       setError('Failed to save entry.');
-    }
-  };
-
-  const handleEdit = (entry) => {
-    setFormData({
-      photo: entry.photo,
-      location: entry.location,
-      experience: entry.experience,
-      status: entry.status
-    });
-    setEditingId(entry._id);
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      const response = await fetch(`${apiBase}/${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Delete failed');
-      fetchEntries();
-    } catch (err) {
-      setError('Failed to delete entry.');
+      setSuccess('');
     }
   };
 
@@ -100,6 +66,7 @@ function JournalManager() {
       </h2>
 
       {error && <Alert variant="danger">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
 
       <Form>
         <Form.Group className="mb-3">
@@ -112,6 +79,20 @@ function JournalManager() {
             placeholder="Enter image URL"
           />
         </Form.Group>
+
+        {formData.photo && (
+          <div className="mb-3 text-center">
+            <Image
+              src={formData.photo}
+              onError={(e) => {
+                e.target.src = 'https://via.placeholder.com/300x200?text=Invalid+URL';
+              }}
+              rounded
+              fluid
+              style={{ maxHeight: '200px', objectFit: 'cover' }}
+            />
+          </div>
+        )}
 
         <Form.Group className="mb-3">
           <Form.Label>Location</Form.Label>
@@ -166,29 +147,6 @@ function JournalManager() {
           </Button>
         )}
       </Form>
-
-      <hr className="my-4" />
-
-      <h3 className="mb-3">Journal Entries</h3>
-      <Row>
-        {entries.map((entry) => (
-          <Col md={6} lg={4} key={entry._id} className="mb-4">
-            <Card>
-              <Card.Img variant="top" src={entry.photo} alt={entry.location} style={{ height: '200px', objectFit: 'cover' }} />
-              <Card.Body>
-                <Card.Title>{entry.location}</Card.Title>
-                <Card.Text>{entry.experience}</Card.Text>
-                <Card.Text><strong>Status:</strong> {entry.status}</Card.Text>
-                <small className="text-muted">{new Date(entry.createdAt).toLocaleDateString()}</small>
-                <div className="mt-3 d-flex justify-content-between">
-                  <Button variant="warning" size="sm" onClick={() => handleEdit(entry)}>Edit</Button>
-                  <Button variant="danger" size="sm" onClick={() => handleDelete(entry._id)}>Delete</Button>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
     </Container>
   );
 }
